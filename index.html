@@ -38,6 +38,34 @@
     .progress-fill { height: 100%; background: #4a90e2; width: 0%; transition: width 0.3s; }
     .status { font-size: 0.85rem; color: #6c757d; }
     .action-btns { display: flex; gap: 10px; margin-top: 15px; }
+    .sync-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 12px; padding: 12px 15px; margin-bottom: 20px; text-align: left; }
+    .sync-title { font-size: 0.85rem; font-weight: bold; color: #2c3e50; margin-bottom: 8px; }
+    .sync-row { display: flex; gap: 8px; }
+    .sync-input { flex: 1; min-width: 0; padding: 9px 10px; border: 1px solid #ced4da; border-radius: 8px; font-size: 0.9rem; }
+    .sync-btn { background: #4a90e2; color: #fff; border: none; border-radius: 8px; padding: 0 14px; font-size: 0.85rem; font-weight: bold; cursor: pointer; white-space: nowrap; }
+    .sync-btn.off { background: #6c757d; }
+    .sync-status { font-size: 0.78rem; color: #6c757d; margin-top: 8px; line-height: 1.4; }
+    .container { position: relative; }
+    .help-btn { position: absolute; top: 14px; right: 14px; background: #eef2f7; border: 1px solid #d1d9e6; color: #2c3e50; padding: 6px 12px; border-radius: 8px; font-size: 0.82rem; font-weight: bold; cursor: pointer; }
+    .help-btn:hover { background: #dbe4f0; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; padding: 16px; z-index: 100; }
+    .modal { background: #fff; width: 100%; max-width: 640px; max-height: 90vh; border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; text-align: left; }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid #e9ecef; }
+    .modal-head h2 { font-size: 1.05rem; color: #2c3e50; }
+    .modal-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #6c757d; line-height: 1; }
+    .tabs { display: flex; gap: 6px; padding: 10px 18px 0; }
+    .tab { background: #eef2f7; border: none; padding: 8px 14px; border-radius: 8px 8px 0 0; font-size: 0.85rem; font-weight: bold; color: #6c757d; cursor: pointer; }
+    .tab.active { background: #4a90e2; color: #fff; }
+    .modal-body { padding: 16px 18px 20px; overflow-y: auto; font-size: 0.88rem; line-height: 1.65; color: #2c3e50; }
+    .modal-body h3 { font-size: 0.95rem; margin: 16px 0 6px; }
+    .modal-body h3:first-child { margin-top: 0; }
+    .modal-body ol, .modal-body ul { padding-left: 20px; }
+    .modal-body li { margin-bottom: 4px; }
+    .modal-body code { background: #f1f3f5; padding: 1px 5px; border-radius: 4px; font-family: Consolas, monospace; font-size: 0.82rem; }
+    .modal-body .note { background: #fff8e1; border-left: 3px solid #f39c12; padding: 8px 12px; border-radius: 4px; margin-top: 8px; }
+    .code-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
+    .copy-btn { background: #4a90e2; color: #fff; border: none; border-radius: 8px; padding: 7px 14px; font-size: 0.82rem; font-weight: bold; cursor: pointer; }
+    pre.code-view { background: #1e2430; color: #e6edf3; padding: 14px; border-radius: 10px; overflow: auto; max-height: 55vh; font-size: 0.78rem; line-height: 1.5; font-family: Consolas, monospace; white-space: pre; }
     .hidden { display: none; }
   </style>
 </head>
@@ -46,6 +74,7 @@
 <div class="container">
   <!-- 메인 카테고리 화면 -->
   <div id="screen-select">
+    <button class="help-btn" onclick="openHelp()">❓ 도움말</button>
     <h1>🇯🇵 일본어 단어카드</h1>
     <p class="subtitle">학습할 메뉴를 선택하세요.</p>
     
@@ -54,6 +83,16 @@
       <label for="csv-file" class="file-label">📁 다른 CSV 단어 파일로 바꾸기 (선택)</label>
       <input type="file" id="csv-file" class="file-input" accept=".csv" onchange="handleCSV(this)">
       <div id="file-info" style="font-size: 0.8rem; color: #6c757d; margin-top: 5px;">단어 파일 불러오는 중...</div>
+    </div>
+
+    <!-- 별표 동기화 (구글 시트) -->
+    <div id="sync-box" class="sync-box hidden">
+      <div class="sync-title">☁️ 별표 동기화 (기기 간 공유)</div>
+      <div class="sync-row">
+        <input id="sync-input" class="sync-input" type="text" placeholder="동기화 코드 (영문/숫자 4자 이상)" autocomplete="off">
+        <button id="sync-btn" class="sync-btn" onclick="toggleSync()">연결</button>
+      </div>
+      <div id="sync-status" class="sync-status">같은 코드를 입력한 기기끼리 별표가 공유됩니다.</div>
     </div>
 
     <button class="btn" onclick="startQuiz('daily')">
@@ -114,6 +153,158 @@
   </div>
 </div>
 
+
+<!-- 도움말 모달 -->
+<div id="help-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeHelp()">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="도움말">
+    <div class="modal-head">
+      <h2>☁️ 별표 동기화 설정 도움말</h2>
+      <button class="modal-close" onclick="closeHelp()" aria-label="닫기">×</button>
+    </div>
+    <div class="tabs">
+      <button id="tab-guide" class="tab active" onclick="showHelpTab('guide')">설정 방법</button>
+      <button id="tab-code" class="tab" onclick="showHelpTab('code')">Code.gs</button>
+    </div>
+
+    <div id="pane-guide" class="modal-body">
+      <p>별표(★)를 구글 시트에 저장해서 여러 기기에서 같이 쓰는 방법입니다. 서버 가입 없이 구글 계정만 있으면 됩니다.</p>
+
+      <h3>1. 구글 시트 만들기</h3>
+      <ol>
+        <li><code>sheets.new</code>에 접속해 새 시트를 만들고 이름을 정합니다. (예: japanese_vocab_stars)</li>
+      </ol>
+
+      <h3>2. Apps Script 붙여넣기</h3>
+      <ol>
+        <li>시트 메뉴에서 <b>확장 프로그램 → Apps Script</b>를 엽니다.</li>
+        <li>기존 코드를 모두 지우고, 이 창의 <b>Code.gs</b> 탭에서 <b>복사</b>한 코드를 붙여넣습니다.</li>
+        <li>저장(Ctrl+S)합니다.</li>
+      </ol>
+
+      <h3>3. 웹 앱으로 배포</h3>
+      <ol>
+        <li>오른쪽 위 <b>배포 → 새 배포</b>를 누르고, 톱니바퀴 아이콘에서 유형을 <b>웹 앱</b>으로 고릅니다.</li>
+        <li><b>다음 사용자로 실행</b>: <code>나</code></li>
+        <li><b>액세스 권한이 있는 사용자</b>: <code>모든 사용자</code></li>
+        <li><b>배포</b>를 누르고 권한을 승인합니다. "확인되지 않은 앱" 경고가 나오면 <b>고급 → (프로젝트 이름)(안전하지 않음)으로 이동</b>을 누릅니다. 본인이 만든 스크립트라 정상입니다.</li>
+        <li>배포가 끝나면 나오는 <code>https://script.google.com/macros/s/.../exec</code> 형태의 <b>웹 앱 URL</b>을 복사합니다.</li>
+      </ol>
+
+      <h3>4. index.html에 URL 넣기</h3>
+      <ol>
+        <li><code>index.html</code>에서 아래 줄을 찾아 복사한 URL을 넣습니다.<br><code>const SYNC_URL = '여기에 URL';</code></li>
+        <li>이 값이 비어 있으면 첫 화면의 동기화 박스가 숨겨집니다.</li>
+      </ol>
+
+      <h3>5. GitHub에 올리고 사용하기</h3>
+      <ol>
+        <li>수정한 <code>index.html</code>을 GitHub 저장소에 덮어씁니다. 1~2분 뒤 반영됩니다.</li>
+        <li>첫 화면의 <b>별표 동기화</b> 박스에 동기화 코드(영문/숫자 4~40자)를 입력하고 <b>연결</b>을 누릅니다.</li>
+        <li>다른 기기에서도 같은 코드를 입력하면 별표가 공유됩니다. 사람마다 다른 코드를 쓰면 별표가 섞이지 않습니다.</li>
+      </ol>
+
+      <h3>주의할 점</h3>
+      <ul>
+        <li><b>코드를 수정했다면</b>: <b>배포 → 배포 관리 → 연필 아이콘 → 버전: 새 버전</b>으로 다시 배포해야 반영됩니다. URL은 그대로입니다.</li>
+        <li><b>보안</b>: 동기화 코드를 아는 사람은 그 코드의 별표를 읽고 바꿀 수 있습니다. 추측하기 어려운 문자열로 정하세요.</li>
+        <li><b>동기화 실패</b> 문구가 보이면 그 기기에는 저장됐지만 서버에는 올라가지 않은 것입니다. 연결을 확인한 뒤 다시 눌러 주세요.</li>
+      </ul>
+      <div class="note">이 도움말의 설정은 별표 동기화에만 필요합니다. 단어장 자체는 같은 폴더의 CSV 파일에서 자동으로 불러옵니다.</div>
+    </div>
+
+    <div id="pane-code" class="modal-body hidden">
+      <div class="code-toolbar">
+        <span>Apps Script 편집기에 그대로 붙여넣으세요.</span>
+        <button class="copy-btn" onclick="copyGsCode(this)">📋 코드 복사</button>
+      </div>
+      <pre class="code-view" id="gs-view"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- Code.gs 원본 (도움말의 Code.gs 탭에 표시됨) -->
+<script type="text/plain" id="gs-source">/**
+ * 일본어 단어카드 - 별표(즐겨찾기) 동기화용 Google Apps Script
+ * 시트 탭 이름: bookmarks  (처음 실행 시 자동 생성)
+ * 열: code(동기화 코드) | id(단어 ID) | updated(저장 시각)
+ */
+const SHEET_NAME = 'bookmarks';
+
+function getSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(SHEET_NAME);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET_NAME);
+    sh.appendRow(['code', 'id', 'updated']);
+  }
+  return sh;
+}
+
+function json_(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function validCode_(code) {
+  return /^[A-Za-z0-9_-]{4,40}$/.test(code);
+}
+
+// 별표 목록 읽기: ?code=내코드
+function doGet(e) {
+  const code = String((e && e.parameter && e.parameter.code) || '').trim();
+  if (!validCode_(code)) return json_({ ok: false, error: 'invalid code' });
+
+  const rows = getSheet_().getDataRange().getValues();
+  const ids = [];
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === code) ids.push(String(rows[i][1]));
+  }
+  return json_({ ok: true, ids: ids });
+}
+
+// 별표 추가/삭제: { code, action: 'add' | 'remove', ids: [...] }
+function doPost(e) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const body = JSON.parse(e.postData.contents);
+    const code = String(body.code || '').trim();
+    const ids = Array.isArray(body.ids) ? body.ids.map(String) : [];
+    if (!validCode_(code)) return json_({ ok: false, error: 'invalid code' });
+    if (ids.length > 5000) return json_({ ok: false, error: 'too many ids' });
+
+    const sh = getSheet_();
+    const rows = sh.getDataRange().getValues();
+
+    if (body.action === 'add') {
+      const existing = new Set();
+      for (let i = 1; i < rows.length; i++) {
+        if (String(rows[i][0]) === code) existing.add(String(rows[i][1]));
+      }
+      const now = new Date();
+      const newRows = ids.filter(id => !existing.has(id)).map(id => [code, id, now]);
+      if (newRows.length) {
+        sh.getRange(sh.getLastRow() + 1, 1, newRows.length, 3).setValues(newRows);
+      }
+    } else if (body.action === 'remove') {
+      const del = new Set(ids);
+      for (let i = rows.length - 1; i >= 1; i--) {   // 아래에서부터 지워야 행 번호가 안 밀림
+        if (String(rows[i][0]) === code && del.has(String(rows[i][1]))) {
+          sh.deleteRow(i + 1);
+        }
+      }
+    } else {
+      return json_({ ok: false, error: 'unknown action' });
+    }
+    return json_({ ok: true });
+  } catch (err) {
+    return json_({ ok: false, error: String(err) });
+  } finally {
+    lock.releaseLock();
+  }
+}
+</script>
+
 <script>
   let allVocab = [];
   let bookmarkedIds = JSON.parse(localStorage.getItem('jp_saved_words') || '[]');
@@ -138,9 +329,14 @@
   // ★ GitHub에 함께 올려둔 CSV 파일 이름 (index.html과 같은 폴더)
   const CSV_URL = 'japanese_vocab_4000.csv';
 
+  // ★ Apps Script 웹 앱 URL (https://script.google.com/macros/s/.../exec). 비워 두면 동기화 기능이 숨겨집니다.
+  const SYNC_URL = '';
+  let syncCode = localStorage.getItem('jp_sync_code') || '';
+
   allVocab = [...defaultVocab];
   updateBookmarkCount();
   loadDefaultCSV();
+  initSync();
 
   // 따옴표(")로 감싼 필드와 필드 안의 쉼표를 처리하는 CSV 파서
   function parseCSV(text) {
@@ -279,8 +475,9 @@
     event.stopPropagation();
     const currentItem = quizList[currentIndex];
     const index = bookmarkedIds.indexOf(currentItem.id);
+    const wasSaved = index > -1;
 
-    if (index > -1) {
+    if (wasSaved) {
       bookmarkedIds.splice(index, 1);
     } else {
       bookmarkedIds.push(currentItem.id);
@@ -289,6 +486,128 @@
     localStorage.setItem('jp_saved_words', JSON.stringify(bookmarkedIds));
     renderCard();
     updateBookmarkCount();
+
+    // 서버(구글 시트)에도 반영
+    if (SYNC_URL && syncCode) {
+      syncPost(wasSaved ? 'remove' : 'add', [currentItem.id])
+        .then(() => setSyncStatus('✅ 동기화됨'))
+        .catch(() => setSyncStatus('⚠️ 동기화 실패 (이 기기에는 저장됨)'));
+    }
+  }
+
+  // ===== 도움말 =====
+  function openHelp() {
+    document.getElementById('gs-view').textContent = document.getElementById('gs-source').textContent.trim();
+    showHelpTab('guide');
+    document.getElementById('help-modal').classList.remove('hidden');
+  }
+  function closeHelp() { document.getElementById('help-modal').classList.add('hidden'); }
+  function showHelpTab(name) {
+    const isGuide = name === 'guide';
+    document.getElementById('pane-guide').classList.toggle('hidden', !isGuide);
+    document.getElementById('pane-code').classList.toggle('hidden', isGuide);
+    document.getElementById('tab-guide').classList.toggle('active', isGuide);
+    document.getElementById('tab-code').classList.toggle('active', !isGuide);
+  }
+  function copyGsCode(btn) {
+    const text = document.getElementById('gs-source').textContent.trim();
+    const done = () => { const o = btn.innerText; btn.innerText = '✅ 복사됨'; setTimeout(() => btn.innerText = o, 1500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    } else fallbackCopy(text, done);
+  }
+  function fallbackCopy(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { alert('복사하지 못했습니다. 코드를 직접 선택해서 복사해 주세요.'); }
+    document.body.removeChild(ta);
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHelp(); });
+
+  // ===== 구글 시트 동기화 =====
+  function setSyncStatus(msg) {
+    const el = document.getElementById('sync-status');
+    if (el) el.innerText = msg;
+  }
+
+  async function syncGet() {
+    const res = await fetch(SYNC_URL + '?code=' + encodeURIComponent(syncCode));
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'sync error');
+    return data.ids;
+  }
+
+  async function syncPost(action, ids) {
+    // Content-Type을 지정하지 않아(text/plain) CORS 사전 요청 없이 전송됨
+    const res = await fetch(SYNC_URL, {
+      method: 'POST',
+      body: JSON.stringify({ code: syncCode, action, ids })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'sync error');
+  }
+
+  function applyServerIds(ids) {
+    bookmarkedIds = ids;
+    localStorage.setItem('jp_saved_words', JSON.stringify(bookmarkedIds));
+    updateBookmarkCount();
+  }
+
+  function initSync() {
+    if (!SYNC_URL) return;
+    document.getElementById('sync-box').classList.remove('hidden');
+    renderSyncUI();
+    if (syncCode) pullBookmarks();
+  }
+
+  function renderSyncUI() {
+    const input = document.getElementById('sync-input');
+    const btn = document.getElementById('sync-btn');
+    if (syncCode) {
+      input.value = syncCode; input.disabled = true;
+      btn.innerText = '해제'; btn.classList.add('off');
+    } else {
+      input.value = ''; input.disabled = false;
+      btn.innerText = '연결'; btn.classList.remove('off');
+      setSyncStatus('같은 코드를 입력한 기기끼리 별표가 공유됩니다.');
+    }
+  }
+
+  async function pullBookmarks() {
+    setSyncStatus('☁️ 불러오는 중...');
+    try {
+      applyServerIds(await syncGet());
+      setSyncStatus('✅ 동기화됨');
+    } catch (err) {
+      setSyncStatus('⚠️ 서버에 연결하지 못했습니다. 이 기기의 별표를 사용 중입니다.');
+    }
+  }
+
+  async function toggleSync() {
+    if (syncCode) {                       // 연결 해제 (이 기기의 별표는 유지)
+      syncCode = '';
+      localStorage.removeItem('jp_sync_code');
+      renderSyncUI();
+      return;
+    }
+    const value = document.getElementById('sync-input').value.trim();
+    if (!/^[A-Za-z0-9_-]{4,40}$/.test(value)) {
+      alert('동기화 코드는 영문/숫자/-/_ 4~40자로 입력해 주세요.');
+      return;
+    }
+    setSyncStatus('☁️ 연결 중...');
+    try {
+      syncCode = value;
+      if (bookmarkedIds.length) await syncPost('add', bookmarkedIds);  // 이 기기의 기존 별표를 서버에 합침
+      applyServerIds(await syncGet());
+      localStorage.setItem('jp_sync_code', syncCode);
+      renderSyncUI();
+      setSyncStatus('✅ 연결됨');
+    } catch (err) {
+      syncCode = '';
+      setSyncStatus('⚠️ 연결 실패: Apps Script URL과 배포 설정을 확인해 주세요.');
+    }
   }
 
   function speakCurrentJp(event) {
