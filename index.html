@@ -130,7 +130,7 @@
           </div>
           <div id="jp-text" class="jp-text">約束</div>
           <div id="reading-text" class="reading">やくそく</div>
-          <div style="font-size: 0.85rem; margin-top: 12px; opacity: 0.75;">💡 카드를 클릭하면 정답이 보여요!</div>
+          
         </div>
         <div class="card-face card-back">
           <div id="kr-text" class="kr-text">약속</div>
@@ -423,6 +423,16 @@ function doPost(e) {
     document.getElementById('screen-result').classList.add('hidden');
   }
 
+  // Fisher-Yates 셔플 (모든 단어가 같은 확률로 출제됨)
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
   function startQuiz(category) {
     currentCategory = category;
     
@@ -439,7 +449,7 @@ function doPost(e) {
         alert('해당 카테고리에 등록된 단어가 없습니다.');
         return;
       }
-      quizList = [...filtered].sort(() => Math.random() - 0.5).slice(0, 10);
+      quizList = shuffle(filtered).slice(0, 10);
       document.getElementById('cat-label').innerText = category === 'daily' ? '🗣️ N4 일상 회화' : '💼 N2 비즈니스';
     }
 
