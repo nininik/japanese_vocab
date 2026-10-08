@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>일본어 단어카드 (CSV 대량 등록 지원)</title>
+  <title>일본어 단어카드</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', AppleSDGothicNeo-Medium, sans-serif; }
     body { background: #f0f4f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
@@ -31,6 +31,8 @@
     .icon-btn.active { background: #ffd700; color: #333; border-color: #ffd700; }
     .jp-text { font-size: 2.2rem; font-weight: bold; margin-bottom: 8px; }
     .reading { font-size: 1.1rem; opacity: 0.9; }
+    .jp-text.long { font-size: 1.5rem; }
+    .jp-text.xlong { font-size: 1.15rem; line-height: 1.4; }
     .kr-text { font-size: 1.6rem; font-weight: bold; color: #e74c3c; }
     .progress-bar { width: 100%; height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; margin-bottom: 15px; }
     .progress-fill { height: 100%; background: #4a90e2; width: 0%; transition: width 0.3s; }
@@ -49,9 +51,9 @@
     
     <!-- CSV 파일 업로드 영역 -->
     <div class="file-box">
-      <label for="csv-file" class="file-label">📁 나만의 CSV 단어 파일 업로드</label>
+      <label for="csv-file" class="file-label">📁 다른 CSV 단어 파일로 바꾸기 (선택)</label>
       <input type="file" id="csv-file" class="file-input" accept=".csv" onchange="handleCSV(this)">
-      <div id="file-info" style="font-size: 0.8rem; color: #6c757d; margin-top: 5px;">기본 데이터 세트 사용 중</div>
+      <div id="file-info" style="font-size: 0.8rem; color: #6c757d; margin-top: 5px;">단어 파일 불러오는 중...</div>
     </div>
 
     <button class="btn" onclick="startQuiz('daily')">
@@ -106,7 +108,7 @@
   <!-- 결과 화면 -->
   <div id="screen-result" class="hidden">
     <h1>🎉 학습 완료!</h1>
-    <p style="margin: 20px 0; font-size: 1.1rem; color: #2c3e50;">10개 단어 학습을 완료했습니다.</p>
+    <p id="result-text" style="margin: 20px 0; font-size: 1.1rem; color: #2c3e50;">10개 단어 학습을 완료했습니다.</p>
     <button class="btn" onclick="restartQuiz()">다시 학습하기</button>
     <button class="btn btn-secondary" onclick="showSelect()">🏠 첫페이지로 이동</button>
   </div>
@@ -133,39 +135,81 @@
     { id: "b5", category: "business", jp: "契約", reading: "けいやく", kr: "계약" }
   ];
 
+  // ★ GitHub에 함께 올려둔 CSV 파일 이름 (index.html과 같은 폴더)
+  const CSV_URL = 'japanese_vocab_4000.csv';
+
   allVocab = [...defaultVocab];
   updateBookmarkCount();
+  loadDefaultCSV();
 
-  // CSV 파싱 및 로드
+  // 따옴표(")로 감싼 필드와 필드 안의 쉼표를 처리하는 CSV 파서
+  function parseCSV(text) {
+    text = text.replace(/^\uFEFF/, '');
+    const rows = [];
+    let row = [], field = '', inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQuotes) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i++; }
+          else inQuotes = false;
+        } else field += c;
+      } else if (c === '"') inQuotes = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && text[i + 1] === '\n') i++;
+        row.push(field); field = '';
+        if (row.some(v => v.trim() !== '')) rows.push(row);
+        row = [];
+      } else field += c;
+    }
+    row.push(field);
+    if (row.some(v => v.trim() !== '')) rows.push(row);
+    return rows;
+  }
+
+  function rowsToVocab(rows) {
+    const list = [], seen = new Set();
+    for (let i = 1; i < rows.length; i++) {          // 0번째 줄은 헤더
+      const [category, jp, reading, kr] = rows[i].map(v => (v || '').trim());
+      if (!jp || !kr) continue;
+      const cat = category || 'daily';
+      const id = cat + ':' + jp;                      // 즐겨찾기용 고정 ID
+      if (seen.has(id)) continue;
+      seen.add(id);
+      list.push({ id, category: cat, jp, reading: reading || jp, kr });
+    }
+    return list;
+  }
+
+  // 페이지가 열릴 때 같은 폴더의 CSV를 자동으로 불러옴
+  async function loadDefaultCSV() {
+    const info = document.getElementById('file-info');
+    try {
+      const res = await fetch(CSV_URL);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const list = rowsToVocab(parseCSV(await res.text()));
+      if (list.length === 0) throw new Error('empty');
+      allVocab = list;
+      info.innerText = `✅ ${CSV_URL} (${list.length}개 단어)`;
+    } catch (err) {
+      info.innerText = '⚠️ CSV를 불러오지 못해 기본 단어 10개를 사용 중입니다. (파일 이름/위치 확인 또는 아래에서 직접 업로드)';
+    }
+  }
+
+  // 직접 CSV 업로드 (선택)
   function handleCSV(input) {
     const file = input.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = function(e) {
-      const text = e.target.result;
-      const lines = text.split('\n');
-      const loadedData = [];
-
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        const [category, jp, reading, kr] = line.split(',');
-        if (jp && kr) {
-          loadedData.push({
-            id: `csv_${i}`,
-            category: category ? category.trim() : 'daily',
-            jp: jp.trim(),
-            reading: reading ? reading.trim() : jp.trim(),
-            kr: kr.trim()
-          });
-        }
-      }
-
-      if (loadedData.length > 0) {
-        allVocab = loadedData;
-        document.getElementById('file-info').innerText = `✅ ${file.name} (${loadedData.length}개 단어 적용됨)`;
-        alert(`${loadedData.length}개의 단어가 정상적으로 등록되었습니다!`);
+      const list = rowsToVocab(parseCSV(e.target.result));
+      if (list.length > 0) {
+        allVocab = list;
+        document.getElementById('file-info').innerText = `✅ ${file.name} (${list.length}개 단어 적용됨)`;
+        alert(`${list.length}개의 단어가 정상적으로 등록되었습니다!`);
+      } else {
+        alert('읽을 수 있는 단어가 없습니다. 첫 줄이 category,jp,reading,kr 형식인지 확인해 주세요.');
       }
     };
     reader.readAsText(file, 'UTF-8');
@@ -215,7 +259,9 @@
     cardEl.classList.remove('flipped');
 
     setTimeout(() => {
-      document.getElementById('jp-text').innerText = item.jp;
+      const jpEl = document.getElementById('jp-text');
+      jpEl.innerText = item.jp;
+      jpEl.className = 'jp-text' + (item.jp.length > 14 ? ' xlong' : item.jp.length > 7 ? ' long' : '');
       document.getElementById('reading-text').innerText = item.reading;
       document.getElementById('kr-text').innerText = item.kr;
       
@@ -260,7 +306,7 @@
   function flipCard() { document.getElementById('card').classList.toggle('flipped'); }
   function nextCard() {
     if (currentIndex < quizList.length - 1) { currentIndex++; renderCard(); }
-    else { document.getElementById('screen-quiz').classList.add('hidden'); document.getElementById('screen-result').classList.remove('hidden'); }
+    else { document.getElementById('result-text').innerText = `${quizList.length}개 단어 학습을 완료했습니다.`; document.getElementById('screen-quiz').classList.add('hidden'); document.getElementById('screen-result').classList.remove('hidden'); }
   }
   function prevCard() { if (currentIndex > 0) { currentIndex--; renderCard(); } }
   function restartQuiz() { startQuiz(currentCategory); }
