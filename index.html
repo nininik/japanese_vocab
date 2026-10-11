@@ -237,7 +237,7 @@
 
       <h3>3. index.html에 URL 넣기</h3>
       <ol>
-        <li><code>index.html</code>에서 아래 줄을 찾아 복사한 URL을 넣고 GitHub에 다시 올립니다.<br><code>const CUSTOM_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlKwr_HxFqtycepp5SNvdwkfR_NRyav-b75TezOqIoocHRvxg0Gha9-1HxBSRQd_wGv0NcK3eTnSoF/pub?gid=0&single=true&output=csv';</code></li>
+        <li><code>index.html</code>에서 아래 줄을 찾아 복사한 URL을 넣고 GitHub에 다시 올립니다.<br><code>const CUSTOM_SHEET_URL = '여기에 URL';</code></li>
         <li>이후에는 시트에 단어·문장을 추가하기만 하면 됩니다.</li>
       </ol>
 
@@ -372,7 +372,7 @@ function doPost(e) {
   const SYNC_URL = 'https://script.google.com/macros/s/AKfycbxic13iBr6WU2-wbhOU7uoo4R-_M7V2OPHWdD1oPOIUVeqKH24lUsUouT0nZI2Vtz_5/exec';
 
   // ★ '내가 만든 단어·문장' 구글 시트의 웹 게시 CSV 주소 (도움말 → 내 단어장 시트 탭 참고). 비워 두면 안내만 표시됩니다.
-  const CUSTOM_SHEET_URL = '';
+  const CUSTOM_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlKwr_HxFqtycepp5SNvdwkfR_NRyav-b75TezOqIoocHRvxg0Gha9-1HxBSRQd_wGv0NcK3eTnSoF/pub?gid=0&single=true&output=csv';
   let customVocab = [];
   let customLoadedAt = 0;
   let customFilter = 'all';
