@@ -66,6 +66,14 @@
     .code-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
     .copy-btn { background: #4a90e2; color: #fff; border: none; border-radius: 8px; padding: 7px 14px; font-size: 0.82rem; font-weight: bold; cursor: pointer; }
     pre.code-view { background: #1e2430; color: #e6edf3; padding: 14px; border-radius: 10px; overflow: auto; max-height: 55vh; font-size: 0.78rem; line-height: 1.5; font-family: Consolas, monospace; white-space: pre; }
+    .btn-custom { background: #8e44ad; }
+    .btn-custom:hover { background: #773d94; }
+    .chip-row { display: flex; align-items: center; justify-content: center; gap: 6px; margin: -4px 0 14px; }
+    .chip-label { font-size: 0.78rem; color: #6c757d; margin-right: 2px; }
+    .chip { background: #f1f3f5; border: 1px solid #dee2e6; color: #495057; padding: 5px 14px; border-radius: 999px; font-size: 0.8rem; font-weight: bold; cursor: pointer; }
+    .chip.active { background: #8e44ad; border-color: #8e44ad; color: #fff; }
+    .kr-text.long { font-size: 1.2rem; line-height: 1.5; }
+    .kr-text.xlong { font-size: 1rem; line-height: 1.55; }
     .hidden { display: none; }
   </style>
 </head>
@@ -103,6 +111,16 @@
       💼 N2 수준 일반 비즈니스
       <span class="btn-desc">클라이언트 미팅, 이메일, 업무 협의 등</span>
     </button>
+    <button id="btn-custom" class="btn btn-custom" onclick="startQuiz('custom')">
+      📝 내가 만든 단어·문장
+      <span class="btn-desc">구글 시트에 직접 적은 단어와 문장으로 학습</span>
+    </button>
+    <div class="chip-row" id="custom-filter">
+      <span class="chip-label">출제 범위</span>
+      <button class="chip active" data-f="all" onclick="setCustomFilter('all')">전체</button>
+      <button class="chip" data-f="word" onclick="setCustomFilter('word')">단어</button>
+      <button class="chip" data-f="sentence" onclick="setCustomFilter('sentence')">문장</button>
+    </div>
     <button id="btn-my-words" class="btn btn-bookmark" onclick="startQuiz('my_words')">
       ⭐ 나만의 단어장 (0개)
       <span class="btn-desc">내가 별표(★)한 단어만 복습하기</span>
@@ -158,12 +176,13 @@
 <div id="help-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeHelp()">
   <div class="modal" role="dialog" aria-modal="true" aria-label="도움말">
     <div class="modal-head">
-      <h2>☁️ 별표 동기화 설정 도움말</h2>
+      <h2>❓ 도움말</h2>
       <button class="modal-close" onclick="closeHelp()" aria-label="닫기">×</button>
     </div>
     <div class="tabs">
-      <button id="tab-guide" class="tab active" onclick="showHelpTab('guide')">설정 방법</button>
+      <button id="tab-guide" class="tab active" onclick="showHelpTab('guide')">별표 동기화</button>
       <button id="tab-code" class="tab" onclick="showHelpTab('code')">Code.gs</button>
+      <button id="tab-sheet" class="tab" onclick="showHelpTab('sheet')">내 단어장 시트</button>
     </div>
 
     <div id="pane-guide" class="modal-body">
@@ -210,6 +229,40 @@
         <li><b>동기화 실패</b> 문구가 보이면 그 기기에는 저장됐지만 서버에는 올라가지 않은 것입니다. 연결을 확인한 뒤 다시 눌러 주세요.</li>
       </ul>
       <div class="note">이 도움말의 설정은 별표 동기화에만 필요합니다. 단어장 자체는 같은 폴더의 CSV 파일에서 자동으로 불러옵니다.</div>
+    </div>
+
+    <div id="pane-sheet" class="modal-body hidden">
+      <p>내가 만든 단어와 문장을 구글 시트에 적어 두면, 메뉴의 <b>📝 내가 만든 단어·문장</b>에서 바로 학습할 수 있습니다. 시트에 행을 추가하기만 하면 되고, 코드를 고칠 필요는 없습니다.</p>
+
+      <h3>1. 시트 만들기</h3>
+      <ol>
+        <li><code>sheets.new</code>에서 새 시트를 만들고, <b>첫 줄(헤더)</b>에 아래 4개 열을 그대로 적습니다.</li>
+        <li><code>type</code> | <code>jp</code> | <code>reading</code> | <code>kr</code></li>
+        <li><b>type</b>: <code>word</code>(단어) 또는 <code>sentence</code>(문장) &nbsp;/&nbsp; <b>jp</b>: 일본어 &nbsp;/&nbsp; <b>reading</b>: 읽기(후리가나, 비워도 됨) &nbsp;/&nbsp; <b>kr</b>: 한국어 뜻</li>
+        <li>문장은 <code>reading</code>을 비워 두면 카드에 읽기 줄이 표시되지 않고, 음성(🔊)은 일본어 원문으로 재생됩니다.</li>
+      </ol>
+
+      <h3>2. 웹에 게시하고 URL 복사</h3>
+      <ol>
+        <li>시트 메뉴에서 <b>파일 → 공유 → 웹에 게시</b>를 엽니다.</li>
+        <li>왼쪽은 <b>단어가 적힌 시트 탭</b>, 오른쪽은 <b>쉼표로 구분된 값(.csv)</b>으로 고릅니다.</li>
+        <li><b>게시</b>를 누르고 나오는 URL을 복사합니다. (<code>https://docs.google.com/spreadsheets/d/e/.../pub?output=csv</code> 형태)</li>
+      </ol>
+
+      <h3>3. index.html에 URL 넣기</h3>
+      <ol>
+        <li><code>index.html</code>에서 아래 줄을 찾아 복사한 URL을 넣고 GitHub에 다시 올립니다.<br><code>const CUSTOM_SHEET_URL = '여기에 URL';</code></li>
+        <li>이후에는 시트에 단어·문장을 추가하기만 하면 됩니다.</li>
+      </ol>
+
+      <h3>주의할 점</h3>
+      <ul>
+        <li><b>반영 지연</b>: 게시된 시트는 구글 쪽 캐시 때문에 수정 후 최대 몇 분 뒤에 반영됩니다.</li>
+        <li><b>공개 범위</b>: 웹에 게시하면 URL을 아는 사람은 누구나 시트 내용을 볼 수 있습니다. 개인정보나 비밀 내용은 적지 마세요. 게시 중지는 같은 메뉴에서 할 수 있습니다.</li>
+        <li><b>불러오지 못할 때</b>: 시트 탭 선택, 형식이 csv인지, 헤더(type, jp, reading, kr)가 첫 줄에 있는지 확인해 주세요.</li>
+        <li>단어에 쉼표(,)가 들어가도 괜찮습니다. 시트가 자동으로 따옴표 처리해서 내보냅니다.</li>
+        <li>카드의 별(☆)은 이 메뉴의 단어·문장에도 똑같이 눌러서 <b>나만의 단어장</b>에 모을 수 있습니다.</li>
+      </ul>
     </div>
 
     <div id="pane-code" class="modal-body hidden">
@@ -331,12 +384,23 @@ function doPost(e) {
 
   // ★ Apps Script 웹 앱 URL (https://script.google.com/macros/s/.../exec). 비워 두면 동기화 기능이 숨겨집니다.
   const SYNC_URL = '';
+
+  // ★ '내가 만든 단어·문장' 구글 시트의 웹 게시 CSV 주소 (도움말 → 내 단어장 시트 탭 참고). 비워 두면 안내만 표시됩니다.
+  const CUSTOM_SHEET_URL = '';
+  let customVocab = [];
+  let customLoadedAt = 0;
+  let customFilter = 'all';
+  try { customFilter = localStorage.getItem('jp_custom_filter') || 'all'; } catch (e) {}
   let syncCode = localStorage.getItem('jp_sync_code') || '';
 
   allVocab = [...defaultVocab];
   updateBookmarkCount();
   loadDefaultCSV();
   initSync();
+  refreshCustomFilterUI();
+  if (CUSTOM_SHEET_URL) {
+    fetchCustomSheet().then(list => { customVocab = list; customLoadedAt = Date.now(); }).catch(() => {});
+  }
 
   // 따옴표(")로 감싼 필드와 필드 안의 쉼표를 처리하는 CSV 파서
   function parseCSV(text) {
@@ -433,7 +497,94 @@ function doPost(e) {
     return a;
   }
 
+  // ===== 내가 만든 단어·문장 (구글 시트) =====
+  function isHeaderRow(row) {
+    const a = (row[0] || '').trim().toLowerCase(), b = (row[1] || '').trim().toLowerCase();
+    return ['type', '구분', '유형', '종류'].includes(a) || ['jp', '일본어'].includes(b);
+  }
+
+  function rowsToCustom(rows) {
+    const list = [], seen = new Set();
+    rows.forEach((row, i) => {
+      if (i === 0 && isHeaderRow(row)) return;
+      const [type, jp, reading, kr] = row.map(v => (v || '').trim());
+      if (!jp || !kr) return;
+      const id = 'custom:' + jp;                       // 별표 저장용 고정 ID
+      if (seen.has(id)) return;
+      seen.add(id);
+      list.push({
+        id, category: 'custom', jp, kr,
+        type: /sentence|문장|文/i.test(type) ? 'sentence' : 'word',
+        reading: reading || ''
+      });
+    });
+    return list;
+  }
+
+  async function fetchCustomSheet() {
+    const sep = CUSTOM_SHEET_URL.includes('?') ? '&' : '?';
+    const res = await fetch(CUSTOM_SHEET_URL + sep + '_=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return rowsToCustom(parseCSV(await res.text()));
+  }
+
+  function refreshCustomFilterUI() {
+    document.querySelectorAll('#custom-filter .chip').forEach(c =>
+      c.classList.toggle('active', c.dataset.f === customFilter));
+  }
+
+  function setCustomFilter(f) {
+    customFilter = f;
+    try { localStorage.setItem('jp_custom_filter', f); } catch (e) {}
+    refreshCustomFilterUI();
+  }
+
+  let customLoading = false;
+  async function startCustomQuiz() {
+    currentCategory = 'custom';
+    if (!CUSTOM_SHEET_URL) {
+      alert('아직 구글 시트가 연결되지 않았습니다.\n도움말의 "내 단어장 시트" 탭을 보고 설정해 주세요.');
+      openHelp(); showHelpTab('sheet');
+      return;
+    }
+    if (customLoading) return;
+    const btn = document.getElementById('btn-custom');
+    const stale = Date.now() - customLoadedAt > 60000;      // 1분 이내 재시작은 불러온 데이터를 재사용
+    if (stale || customVocab.length === 0) {
+      customLoading = true; btn.disabled = true;
+      const orig = btn.innerHTML;
+      btn.innerHTML = '⏳ 시트 불러오는 중...';
+      try {
+        customVocab = await fetchCustomSheet();
+        customLoadedAt = Date.now();
+      } catch (err) {
+        if (customVocab.length === 0) {
+          alert('시트를 불러오지 못했습니다.\nURL, 웹 게시 상태, csv 형식을 확인해 주세요.');
+          return;
+        }                                                     // 이전에 불러온 데이터가 있으면 그걸로 계속
+      } finally {
+        customLoading = false; btn.disabled = false; btn.innerHTML = orig;
+      }
+    }
+    const pool = customVocab.filter(i => customFilter === 'all' || i.type === customFilter);
+    if (pool.length === 0) {
+      alert(customVocab.length === 0
+        ? '시트에서 읽을 수 있는 단어·문장이 없습니다.\n첫 줄이 type, jp, reading, kr 헤더인지 확인해 주세요.'
+        : `선택한 범위(${customFilter === 'word' ? '단어' : '문장'})에 해당하는 항목이 없습니다.`);
+      return;
+    }
+    quizList = shuffle(pool).slice(0, 10);
+    document.getElementById('cat-label').innerText =
+      '📝 ' + (customFilter === 'word' ? '내 단어' : customFilter === 'sentence' ? '내 문장' : '내 단어·문장');
+    currentIndex = 0;
+    document.getElementById('screen-select').classList.add('hidden');
+    document.getElementById('screen-result').classList.add('hidden');
+    document.getElementById('screen-quiz').classList.remove('hidden');
+    renderCard();
+  }
+
   function startQuiz(category) {
+    if (category === 'custom') { startCustomQuiz(); return; }
     currentCategory = category;
     
     if (category === 'my_words') {
@@ -441,7 +592,7 @@ function doPost(e) {
         alert('저장된 단어가 없습니다! 카드의 별(☆) 버튼을 눌러 추가해 보세요.');
         return;
       }
-      quizList = allVocab.filter(item => bookmarkedIds.includes(item.id));
+      quizList = [...allVocab, ...customVocab].filter(item => bookmarkedIds.includes(item.id));
       document.getElementById('cat-label').innerText = '⭐ 나만의 단어장';
     } else {
       const filtered = allVocab.filter(item => item.category === category);
@@ -469,7 +620,9 @@ function doPost(e) {
       jpEl.innerText = item.jp;
       jpEl.className = 'jp-text' + (item.jp.length > 14 ? ' xlong' : item.jp.length > 7 ? ' long' : '');
       document.getElementById('reading-text').innerText = item.reading;
-      document.getElementById('kr-text').innerText = item.kr;
+      const krEl = document.getElementById('kr-text');
+      krEl.innerText = item.kr;
+      krEl.className = 'kr-text' + (item.kr.length > 40 ? ' xlong' : item.kr.length > 18 ? ' long' : '');
       
       const isSaved = bookmarkedIds.includes(item.id);
       const starBtn = document.getElementById('star-btn');
@@ -513,11 +666,10 @@ function doPost(e) {
   }
   function closeHelp() { document.getElementById('help-modal').classList.add('hidden'); }
   function showHelpTab(name) {
-    const isGuide = name === 'guide';
-    document.getElementById('pane-guide').classList.toggle('hidden', !isGuide);
-    document.getElementById('pane-code').classList.toggle('hidden', isGuide);
-    document.getElementById('tab-guide').classList.toggle('active', isGuide);
-    document.getElementById('tab-code').classList.toggle('active', !isGuide);
+    ['guide', 'code', 'sheet'].forEach(n => {
+      document.getElementById('pane-' + n).classList.toggle('hidden', n !== name);
+      document.getElementById('tab-' + n).classList.toggle('active', n === name);
+    });
   }
   function copyGsCode(btn) {
     const text = document.getElementById('gs-source').textContent.trim();
