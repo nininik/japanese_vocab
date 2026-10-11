@@ -38,13 +38,7 @@
     .progress-fill { height: 100%; background: #4a90e2; width: 0%; transition: width 0.3s; }
     .status { font-size: 0.85rem; color: #6c757d; }
     .action-btns { display: flex; gap: 10px; margin-top: 15px; }
-    .sync-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 12px; padding: 12px 15px; margin-bottom: 20px; text-align: left; }
-    .sync-title { font-size: 0.85rem; font-weight: bold; color: #2c3e50; margin-bottom: 8px; }
-    .sync-row { display: flex; gap: 8px; }
-    .sync-input { flex: 1; min-width: 0; padding: 9px 10px; border: 1px solid #ced4da; border-radius: 8px; font-size: 0.9rem; }
-    .sync-btn { background: #4a90e2; color: #fff; border: none; border-radius: 8px; padding: 0 14px; font-size: 0.85rem; font-weight: bold; cursor: pointer; white-space: nowrap; }
-    .sync-btn.off { background: #6c757d; }
-    .sync-status { font-size: 0.78rem; color: #6c757d; margin-top: 8px; line-height: 1.4; }
+    .sync-status { font-size: 0.75rem; color: #adb5bd; margin-top: 4px; line-height: 1.4; text-align: center; }
     .container { position: relative; }
     .help-btn { position: absolute; top: 14px; right: 14px; background: #eef2f7; border: 1px solid #d1d9e6; color: #2c3e50; padding: 6px 12px; border-radius: 8px; font-size: 0.82rem; font-weight: bold; cursor: pointer; }
     .help-btn:hover { background: #dbe4f0; }
@@ -93,16 +87,6 @@
       <div id="file-info" style="font-size: 0.8rem; color: #6c757d; margin-top: 5px;">단어 파일 불러오는 중...</div>
     </div>
 
-    <!-- 별표 동기화 (구글 시트) -->
-    <div id="sync-box" class="sync-box hidden">
-      <div class="sync-title">☁️ 별표 동기화 (기기 간 공유)</div>
-      <div class="sync-row">
-        <input id="sync-input" class="sync-input" type="text" placeholder="동기화 코드 (영문/숫자 4자 이상)" autocomplete="off">
-        <button id="sync-btn" class="sync-btn" onclick="toggleSync()">연결</button>
-      </div>
-      <div id="sync-status" class="sync-status">같은 코드를 입력한 기기끼리 별표가 공유됩니다.</div>
-    </div>
-
     <button class="btn" onclick="startQuiz('daily')">
       🗣️ N4 수준 일상 생활회화
       <span class="btn-desc">쇼핑, 길 찾기, 의사 표현, 감정 등</span>
@@ -125,6 +109,7 @@
       ⭐ 나만의 단어장 (0개)
       <span class="btn-desc">내가 별표(★)한 단어만 복습하기</span>
     </button>
+    <div id="sync-status" class="sync-status hidden"></div>
   </div>
 
   <!-- 카드 학습 화면 -->
@@ -211,15 +196,16 @@
 
       <h3>4. index.html에 URL 넣기</h3>
       <ol>
-        <li><code>index.html</code>에서 아래 줄을 찾아 복사한 URL을 넣습니다.<br><code>const SYNC_URL = '여기에 URL';</code></li>
-        <li>이 값이 비어 있으면 첫 화면의 동기화 박스가 숨겨집니다.</li>
+        <li><code>index.html</code>의 <code>&lt;script&gt;</code> 안에서 아래 줄을 찾아 복사한 URL을 넣습니다.<br><code>const SYNC_URL = '여기에 URL';</code></li>
+        <li>바로 아래 <code>const SYNC_CODE = '...';</code>는 별표를 시트에 저장할 때 쓰는 <b>내 고유 코드</b>입니다. 이미 값이 들어 있으니 그대로 두면 되고, 원하면 다른 영문/숫자 문자열(4~40자)로 바꿔도 됩니다.</li>
+        <li><code>SYNC_URL</code>이 비어 있으면 동기화가 꺼지고 별표는 이 기기에만 저장됩니다.</li>
       </ol>
 
       <h3>5. GitHub에 올리고 사용하기</h3>
       <ol>
         <li>수정한 <code>index.html</code>을 GitHub 저장소에 덮어씁니다. 1~2분 뒤 반영됩니다.</li>
-        <li>첫 화면의 <b>별표 동기화</b> 박스에 동기화 코드(영문/숫자 4~40자)를 입력하고 <b>연결</b>을 누릅니다.</li>
-        <li>다른 기기에서도 같은 코드를 입력하면 별표가 공유됩니다. 사람마다 다른 코드를 쓰면 별표가 섞이지 않습니다.</li>
+        <li>별도로 입력할 것은 없습니다. 페이지를 열면 자동으로 동기화되고, 첫 화면 맨 아래에 <b>☁️ 별표 동기화됨</b>이 표시됩니다.</li>
+        <li>다른 기기에서도 같은 <code>index.html</code>(같은 <code>SYNC_CODE</code>)을 쓰면 별표가 공유됩니다. 사람마다 <code>SYNC_CODE</code>를 다르게 하면 별표가 섞이지 않습니다.</li>
       </ol>
 
       <h3>주의할 점</h3>
@@ -251,7 +237,7 @@
 
       <h3>3. index.html에 URL 넣기</h3>
       <ol>
-        <li><code>index.html</code>에서 아래 줄을 찾아 복사한 URL을 넣고 GitHub에 다시 올립니다.<br><code>const CUSTOM_SHEET_URL = '여기에 URL';</code></li>
+        <li><code>index.html</code>에서 아래 줄을 찾아 복사한 URL을 넣고 GitHub에 다시 올립니다.<br><code>const CUSTOM_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlKwr_HxFqtycepp5SNvdwkfR_NRyav-b75TezOqIoocHRvxg0Gha9-1HxBSRQd_wGv0NcK3eTnSoF/pub?gid=0&single=true&output=csv';</code></li>
         <li>이후에는 시트에 단어·문장을 추가하기만 하면 됩니다.</li>
       </ol>
 
@@ -391,7 +377,9 @@ function doPost(e) {
   let customLoadedAt = 0;
   let customFilter = 'all';
   try { customFilter = localStorage.getItem('jp_custom_filter') || 'all'; } catch (e) {}
-  let syncCode = localStorage.getItem('jp_sync_code') || '';
+  // ★ 별표가 구글 시트에 저장될 때 쓰는 내 고유 코드 (직접 입력할 필요 없음). 남에게 알려주지 마세요.
+  const SYNC_CODE = 'jp-5f453mt6agz135';
+  const syncCode = SYNC_URL ? SYNC_CODE : '';
 
   allVocab = [...defaultVocab];
   updateBookmarkCount();
@@ -690,7 +678,7 @@ function doPost(e) {
   // ===== 구글 시트 동기화 =====
   function setSyncStatus(msg) {
     const el = document.getElementById('sync-status');
-    if (el) el.innerText = msg;
+    if (el) { el.innerText = msg; el.classList.remove('hidden'); }
   }
 
   async function syncGet() {
@@ -716,59 +704,18 @@ function doPost(e) {
     updateBookmarkCount();
   }
 
-  function initSync() {
-    if (!SYNC_URL) return;
-    document.getElementById('sync-box').classList.remove('hidden');
-    renderSyncUI();
-    if (syncCode) pullBookmarks();
-  }
-
-  function renderSyncUI() {
-    const input = document.getElementById('sync-input');
-    const btn = document.getElementById('sync-btn');
-    if (syncCode) {
-      input.value = syncCode; input.disabled = true;
-      btn.innerText = '해제'; btn.classList.add('off');
-    } else {
-      input.value = ''; input.disabled = false;
-      btn.innerText = '연결'; btn.classList.remove('off');
-      setSyncStatus('같은 코드를 입력한 기기끼리 별표가 공유됩니다.');
-    }
-  }
-
-  async function pullBookmarks() {
-    setSyncStatus('☁️ 불러오는 중...');
+  // 페이지를 열면 자동으로 구글 시트와 동기화 (입력 불필요)
+  async function initSync() {
+    if (!SYNC_URL || !syncCode) return;
+    setSyncStatus('☁️ 별표 동기화 중...');
     try {
+      // 이 기기에서 처음 동기화할 때만, 기기에 있던 별표를 서버에 합침
+      if (!localStorage.getItem('jp_synced') && bookmarkedIds.length) await syncPost('add', bookmarkedIds);
       applyServerIds(await syncGet());
-      setSyncStatus('✅ 동기화됨');
+      localStorage.setItem('jp_synced', '1');
+      setSyncStatus('☁️ 별표 동기화됨');
     } catch (err) {
-      setSyncStatus('⚠️ 서버에 연결하지 못했습니다. 이 기기의 별표를 사용 중입니다.');
-    }
-  }
-
-  async function toggleSync() {
-    if (syncCode) {                       // 연결 해제 (이 기기의 별표는 유지)
-      syncCode = '';
-      localStorage.removeItem('jp_sync_code');
-      renderSyncUI();
-      return;
-    }
-    const value = document.getElementById('sync-input').value.trim();
-    if (!/^[A-Za-z0-9_-]{4,40}$/.test(value)) {
-      alert('동기화 코드는 영문/숫자/-/_ 4~40자로 입력해 주세요.');
-      return;
-    }
-    setSyncStatus('☁️ 연결 중...');
-    try {
-      syncCode = value;
-      if (bookmarkedIds.length) await syncPost('add', bookmarkedIds);  // 이 기기의 기존 별표를 서버에 합침
-      applyServerIds(await syncGet());
-      localStorage.setItem('jp_sync_code', syncCode);
-      renderSyncUI();
-      setSyncStatus('✅ 연결됨');
-    } catch (err) {
-      syncCode = '';
-      setSyncStatus('⚠️ 연결 실패: Apps Script URL과 배포 설정을 확인해 주세요.');
+      setSyncStatus('⚠️ 동기화 서버에 연결하지 못했습니다. 별표는 이 기기에만 저장됩니다.');
     }
   }
 
